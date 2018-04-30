@@ -101,6 +101,17 @@ button:hover{
     opacity:0;
     transition:opacity 600ms ease-in;
     text-align: right;
+    width: auto;
+}
+
+.chart{
+    position: absolute;
+    top:10px;
+    right:40px;
+    transition:opacity 600ms ease-in;
+    text-align: right;
+    cursor: pointer;
+    width: auto;
 }
 
 .controls{
@@ -285,6 +296,8 @@ button:hover{
     box-shadow: 0 0 10px rgb(0,0,0);
     cursor: pointer;
 }
+
+
 
 @media screen and (min-width: 640px) {
     .dropContainer {

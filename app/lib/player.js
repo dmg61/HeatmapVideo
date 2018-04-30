@@ -17,7 +17,8 @@ function init(){
 function initHeatmap() {
     heatmapInstance = h337.create({
         // only container is required, the rest will be defaults
-        container: document.querySelector('#heatmap')
+        container: document.querySelector('#heatmap'),
+        radius: 30
     });
 
     showHeatmapData()
@@ -192,7 +193,7 @@ function showProgress(){
     progBar.value=(video.currentTime/video.duration);
     count.innerHTML = getTime(video.currentTime*1000) +
         '/'+
-    getTime(video.duration*1000);
+        getTime(video.duration*1000);
     showHeatmapData();
 }
 
@@ -424,6 +425,9 @@ function playerClicked(e){
         case 'enterLink' :
             //do nothing for now
             break;
+        case 'chart' :
+            window.location = "chart.html";
+            break;
         case 'error' :
         case 'errorMessage' :
             closeError();
@@ -446,10 +450,9 @@ function readCSVFile(file) {
 
         for(var item in result) {
             var splitTime = result[item][0].split(":");
-            var time = Number(splitTime[0]) * 60 * 60 * 60
-                + Number(splitTime[1]) * 60 * 60
-                + Number(splitTime[2]) * 60
-                + Number(splitTime[3]);
+            var time = Number(splitTime[0]) * 60 * 60
+                + Number(splitTime[1]) * 60
+                + Number(splitTime[2]);
 
             if (!csvData[time])
                 csvData[time] = [];

@@ -1,0 +1,396 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <link rel='stylesheet' href='layout/player.css'/>
+    <link rel='stylesheet' href='layout/flexboxgrid.min.css'/>
+
+    <style>
+        canvas {
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+        }
+    </style>
+
+    <script src='lib/moment.js'></script>
+    <script src="lib/chart-utils.js"></script>
+    <script src='lib/chart.min.js'></script>
+</head>
+<body>
+<section id='playerContainer' class='player paused'>
+    <div class="row middle-xs" style="height: 50%">
+        <div class="col-xs-6">
+            <div id="containerROI" style="width: 100%;">
+                <canvas id="canvasROI"></canvas>
+            </div>
+        </div>
+        <div class="col-xs-6">
+            <div id="containerTimeROI" style="width: 100%;">
+                <canvas id="canvasTimeROI"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="row middle-xs" style="height: 50%">
+        <div class="col-xs-8">
+            <div id="containerTime" style="width: 100%;">
+                <canvas id="canvasTime"></canvas>
+            </div>
+        </div>
+        <div class="col-xs-4">
+            <div class="row">
+                <button id="loadROI" class="fileChooser">Load ROI</button>
+                <input type='file'
+                       accept=".csv"
+                       id='chooseROI'
+                       class='hide'
+                />
+            </div>
+            <div class="row">
+                <button id="loadCSV" class="fileChooser">Load tracking CSV</button>
+                <input type='file'
+                       accept=".csv"
+                       id='chooseCSV'
+                       class='hide'
+                />
+            </div>
+            <!--<div class="row">-->
+                <!--<button id="loadCSV" class="fileChooser">Load tracking CSV</button>-->
+            <!--</div>-->
+        </div>
+    </div>
+    <button id="back" class='chart'>&#8592;</button>
+    <button id="close" class='close'>X</button>
+</section>
+<script>
+    var roiLabelData = [];
+    var roiData = [];
+    var timeData = [];
+    var roiTimeData = [];
+    var csvData = [];
+
+    window.addEventListener(
+        'DOMContentLoaded',
+        function() {
+            document.querySelector("#back").addEventListener("click", function() {
+                window.location = "player.html";
+            });
+
+            document.querySelector("#close").addEventListener("click", function() {
+                window.close();
+            });
+
+            document.querySelector("#loadCSV").addEventListener("click", function() {
+                document.querySelector("#chooseCSV").click();
+            });
+
+            document.querySelector("#loadROI").addEventListener("click", function() {
+                document.querySelector("#chooseROI").click();
+            });
+
+            document.querySelector('#chooseCSV').addEventListener(
+                'change',
+                readCSV
+            );
+
+            document.querySelector('#chooseROI').addEventListener(
+                'change',
+                readROICSV
+            );
+        }
+    );
+
+    function readROICSV(e) {
+        e.preventDefault();
+
+        var files = [];
+        var fileNames = "";
+
+        if(e.dataTransfer){
+            files=e.dataTransfer.files;
+        }else if(e.target.files){
+            files=e.target.files;
+        }else{
+            files=[
+                {
+                    type:'csv',
+                    path:e.target.value
+                }
+            ];
+        }
+
+        //@ToDo handle playlist
+        for (var i=0; i<files.length; i++) {
+            // console.log(files[i]);
+            readROICSVFile(files[i]);
+
+            fileNames += files[i].name + (files.length == i + 1 ? '' : ', ');
+        }
+
+        alert("File ROI success loaded: " + fileNames);
+    };
+
+    function readCSV(e) {
+        e.preventDefault();
+
+        var files = [];
+        var fileNames = "";
+
+        if(e.dataTransfer){
+            files=e.dataTransfer.files;
+        }else if(e.target.files){
+            files=e.target.files;
+        }else{
+            files=[
+                {
+                    type:'csv',
+                    path:e.target.value
+                }
+            ];
+        }
+
+        //@ToDo handle playlist
+        for (var i=0; i<files.length; i++) {
+            // console.log(files[i]);
+            readCSVFile(files[i]);
+
+            fileNames += files[i].name + (files.length == i + 1 ? '' : ', ');
+        }
+
+        alert("File success loaded: " + fileNames);
+
+        drawGraphs();
+    };
+
+    function readROICSVFile(file) {
+        var reader = new FileReader();
+        var delimiter = ';';
+
+        reader.onload = function () {
+            var lines = this.result.split('\n');
+
+            var result = lines.map(function(line) {
+                return line.split(delimiter);
+            });
+
+            for(var item in result) {
+                var label = result[item][0];
+
+                if (!roiLabelData[label])
+                    roiLabelData[label] = [];
+
+                roiLabelData[label].push({
+                    type: result[item][1], // EXCLUDE, INCLUDE
+                    x: parseFloat(result[item][2]),
+                    y: parseFloat(result[item][3]),
+                    weight: parseFloat(result[item][4]),
+                    height : parseFloat(result[item][5])
+                });
+            }
+
+            // console.log(csvData);
+        };
+
+        reader.readAsText(file);
+    }
+
+    function readCSVFile(file) {
+        var reader = new FileReader();
+        var delimiter = ';';
+
+        reader.onload = function () {
+            var lines = this.result.split('\n');
+
+            var result = lines.map(function(line) {
+                return line.split(delimiter);
+            });
+
+            for(var item in result) {
+                var splitTime = result[item][0].split(":");
+                var time = Number(splitTime[0]) * 60 * 60
+                    + Number(splitTime[1]) * 60
+                    + Number(splitTime[2]);
+
+                if (!csvData[time])
+                    csvData[time] = [];
+
+                csvData[time].push({
+                    x: parseFloat(result[item][1]),
+                    y: parseFloat(result[item][2])
+                });
+            }
+
+            // console.log(csvData);
+        };
+
+        reader.readAsText(file);
+    }
+
+    function drawGraphs() {
+        roiData = [];
+        roiTimeData = [];
+        timeData = [];
+
+        for (var roi in roiLabelData) {
+            roiData[roi] = 0;
+            roiTimeData[roi] = 0;
+        }
+
+        var flagAdd;
+        var roiIndex;
+        // Form ROI Data
+        for (var trackIndex in csvData) {
+            flagAdd = undefined;
+
+            for (var roi in roiLabelData) {
+                for (var roiData in roiLabelData[roi]) {
+                    var item = roiLabelData[roi][roiData];
+
+                    if (item.x >= csvData[trackIndex].x && csvData[trackIndex].x <= item.x + item.weight
+                        && item.y >= csvData[trackIndex].y && csvData[trackIndex].y <= item.y + item.height()) {
+                        if (item.type === 'INCLUDE') {
+                            flagAdd = flagAdd == undefined ? true : undefined;
+                            roiIndex = roi;
+                        }
+                        if (item.type === 'EXCLUDE')
+                            flagAdd = false;
+                    }
+
+                }
+            }
+
+            if (flagAdd == true) {
+                roiData[roiIndex]++;
+            }
+        }
+
+        var roiChartData = {
+            labels: roiLabelData.map(function (item) {
+                return item.label;
+            }),
+            datasets: [{
+                // backgroundColor: color(window.chartColors.red).alpha(0.5).rgbString(),
+                // borderColor: window.chartColors.red,
+                // borderWidth: 1,
+                backgroundColor: [
+                    window.chartColors.red,
+                    window.chartColors.orange,
+                    window.chartColors.yellow,
+                    window.chartColors.green,
+                    window.chartColors.blue,
+                    window.chartColors.purple,
+                    window.chartColors.red
+                ],
+                data: roiData
+            }]
+        };
+
+        var timeRoiChartData = {
+            labels: roiLabelData.map(function (item) {
+                return item.label;
+            }),
+            datasets: [{
+                // backgroundColor: color(window.chartColors.red).alpha(0.5).rgbString(),
+                // borderColor: window.chartColors.red,
+                // borderWidth: 1,
+                backgroundColor: [
+                    window.chartColors.red,
+                    window.chartColors.orange,
+                    window.chartColors.yellow,
+                    window.chartColors.green,
+                    window.chartColors.blue,
+                    window.chartColors.purple,
+                    window.chartColors.red
+                ],
+                data: timeChartData
+            }]
+        };
+
+        var timeChartData = {
+            labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+            datasets: [{
+                label: 'My First dataset',
+                borderColor: window.chartColors.red,
+                backgroundColor: window.chartColors.red,
+                fill: false,
+                data: [
+                    randomScalingFactor(),
+                    randomScalingFactor(),
+                    randomScalingFactor(),
+                    randomScalingFactor(),
+                    randomScalingFactor(),
+                    randomScalingFactor(),
+                    randomScalingFactor()
+                ],
+                yAxisID: 'y-axis-1',
+            }]
+        };
+
+        var ctx = document.getElementById('canvasROI').getContext('2d');
+        window.myBar = new Chart(ctx, {
+            type: 'bar',
+            data: roiChartData,
+            options: {
+                responsive: true,
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'ROI'
+                }
+            }
+        });
+
+        ctx = document.getElementById('canvasTimeROI').getContext('2d');
+        window.myBar = new Chart(ctx, {
+            type: 'bar',
+            data: timeRoiChartData,
+            options: {
+                responsive: true,
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Time ROI'
+                }
+            }
+        });
+
+        ctx = document.getElementById('canvasTime').getContext('2d');
+        window.myLine = Chart.Line(ctx, {
+            data: timeChartData,
+            options: {
+                responsive: true,
+                hoverMode: 'index',
+                stacked: false,
+                title: {
+                    display: true,
+                    text: 'ROI by Time'
+                },
+                scales: {
+                    yAxes: [{
+                        type: 'linear', // only linear but allow scale type registration. This allows extensions to exist solely for log scale for instance
+                        display: true,
+                        position: 'left',
+                        id: 'y-axis-1',
+                    }, {
+                        type: 'linear', // only linear but allow scale type registration. This allows extensions to exist solely for log scale for instance
+                        display: true,
+                        position: 'right',
+                        id: 'y-axis-2',
+
+                        // grid line settings
+                        gridLines: {
+                            drawOnChartArea: false, // only want the grid lines for one axis to show up
+                        },
+                    }],
+                }
+            }
+        });
+
+    }
+
+</script>
+</body>
+</html>
